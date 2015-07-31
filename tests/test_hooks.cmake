@@ -19,7 +19,7 @@ cmu_call_hooks(hook1)
 
 cmu_install_hook(hook1 foo_1)
 # EXPECTED: -- foo called
-# EXPECTED: -- foo_1 called
+# EXPECTED-NEXT: -- foo_1 called
 cmu_call_hooks(hook1)
 
 cmu_remove_hook(hook1 foo)
@@ -28,11 +28,11 @@ cmu_call_hooks(hook1)
 
 cmu_install_hook(hook1 bar)
 # EXPECTED: -- foo_1 called
-# EXPECTED: -- bar called 1;2 3
+# EXPECTED-NEXT: -- bar called 1;2 3
 cmu_call_hooks(hook1 1 "2 3")
 
 # EXPECTED: -- bar called 1;2 3
-# EXPECTED: -- foo_1 called
+# EXPECTED-NEXT: -- foo_1 called
 cmu_call_hooks_reverse(hook1 1 "2 3")
 
 
