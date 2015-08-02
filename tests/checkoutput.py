@@ -278,7 +278,20 @@ class Checker():
 
 
 
-if __name__ == '__main__':
+def read_lines(file):
+    lines = []
+    for line in file:
+        if isinstance(line, bytes):
+            line = line.decode('utf-8')
+        if len(line) > 0 and line[-1] == '\r':
+            line = line[:-1]
+        if len(line) > 0 and line[-1] == '\n':
+            line = line[:-1]
+        lines.append(line)
+    return lines
+
+
+def _test():
     lines = '''
 ; CHECK: foo
 ; CHECK-NEXT: foo3
@@ -307,8 +320,8 @@ q
 end
 '''.split('\n')
     c = Checker(lines=lines)
-    errors = c.validate(lines)
-    print(errors)
+    errors1 = c.validate(lines)
+    print('errors1: %d' % errors1)
 
     lines = '''
 ; CHECK: foo{{.+}}
@@ -319,5 +332,53 @@ foo3
 bar3
 '''.split('\n')
     c = Checker(lines=lines)
-    errors = c.validate(lines)
-    print(errors)
+    errors2 = c.validate(lines)
+    print('errors2: %d' % errors2)
+
+    if errors1 + errors2 == 0:
+        print('OK')
+        return 0
+    else:
+        print('FAILED')
+        return 1
+
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Testsuite utility to verify output produced via stdin or separate file')
+    parser.add_argument('--version', action='version', version='checkoutput 0.0')
+    parser.add_argument('--verbose', '-v', action='count')
+    parser.add_argument('-c', '--check_file', required=False,
+                       help='file with rules to check (defaults to input file)')
+    parser.add_argument('-i', '--input_file', metavar='filename',
+                       help='input file to check (defaults to stdin)')
+    parser.add_argument('--prefix', metavar='prefix', default='CHECK',
+                       help='prefix for check pattern')
+    parser.add_argument('--test', action='store_true', help='run self test')
+
+    args = parser.parse_args()
+
+    if args.test:
+        sys.exit(_test())
+
+    c = Checker(prefix=args.prefix)
+    if args.input_file:
+        with open(args.input_file, 'rb') as f:
+            verify_lines = read_lines(f)
+    else:
+        verify_lines = read_lines(sys.stdin)
+    if args.check_file:
+        c.build_from_file(args.check_file)
+    else:
+        c.build_from_lines(verify_lines)
+    if c.nrules == 0:
+        sys.exit("Check rules is empty")
+    if len(verify_lines) == 0:
+        sys.exit("Input is empty")
+    errors = c.validate(verify_lines)
+    if errors > 0:
+        sys.exit('%s: errors %d' % (c, errors))
+    sys.exit(0)
